@@ -8,8 +8,10 @@ Created on Fri Oct  6 11:50:09 2017
 from sklearn import tree as t
 from sklearn import metrics as m
 from sklearn.model_selection import cross_val_score
+from sklearn import ensemble as e
 import pandas as pd
 import numpy as np
+import matplotlib as mp
 
 def dataClean(df):
     df["response"] = df["response"].astype('category')
@@ -46,13 +48,23 @@ def simple_fit(df):
     act = df_shuffle[int(len(df.index)*.7):].drop(labels = [w for w in df_t.columns if w != "response"], axis = 1)
     return m.accuracy_score(act, pred)
     
-def cross_val(df):
-    clf = t.DecisionTreeClassifier()
+def cross_val(df, i):
+    if i > 0:
+        clf = t.DecisionTreeClassifier(max_depth = i)
+    else:
+         clf = t.DecisionTreeClassifier()
     X = df.drop(labels = "response", axis = 1)
     temp = np.array(df.drop(labels = [w for w in df.columns if w != "response"], axis = 1))
     y = temp.reshape(temp.shape[0])
     return cross_val_score(clf, X , y).mean()
 
+def od(df):
+    scores = []
+    for i in range(1,20):
+        scores.append(cross_val(df,i))
+    return scores.index(max(scores))+1
+    
+    
 def main():
     scores = {}
     df = pd.read_csv("http://archive.ics.uci.edu/ml/machine-learning-databases/pima-indians-diabetes/pima-indians-diabetes.data", 
@@ -62,8 +74,13 @@ def main():
     df = dataClean(df)
     categorize(df)
     scores["Simple Split Fit: "] = simple_fit(df)
-    scores["Simple 5-Fold Cross Validation: "] = cross_val(df)
-    print(scores)
+    scores["Simple 5-Fold Cross Validation: "] = cross_val(df,0)
+    #Lets find the optimal depth for our tree
+    opt_depth = od(df)
+    scores["Single Optimal Depth"] = cross_val(df, opt_depth)
+    
+    
+    
 
 
 if __name__ == '__main__':
